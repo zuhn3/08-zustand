@@ -1,13 +1,15 @@
+
 import { Metadata } from "next";
 import { HydrationBoundary, QueryClient, dehydrate } from "@tanstack/react-query";
 import fetchNotes from "@/lib/api";
 import { tagOptions, Tag } from "@/types/note";
 import NotesClient from "./Notes.client";
 
-type Props = { params: { slug?: string[] } };
+
+type Props = { params: Promise<{ slug?: string[] }> };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const { slug } = params;
+  const { slug } = await params;
   const maybeTag = slug?.[0];
   const tag: Tag | "All" = tagOptions.includes(maybeTag as Tag)
     ? (maybeTag as Tag)
@@ -35,7 +37,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export default async function NotesPage({ params }: Props) {
-  const { slug } = params;
+  const { slug } = await params;
   const maybeTag = slug?.[0];
   const tag: Tag | undefined = tagOptions.includes(maybeTag as Tag)
     ? (maybeTag as Tag)
@@ -43,7 +45,6 @@ export default async function NotesPage({ params }: Props) {
 
   const queryClient = new QueryClient();
 
-  // Початковий стан сторінки = 1, пошук = "" (щоб гідратити перший запит)
   await queryClient.prefetchQuery({
     queryKey: ["notes", { page: 1, q: "", tag: tag ?? null }],
     queryFn: () => fetchNotes({ page: 1, search: "", ...(tag ? { tag } : {}) }),
