@@ -1,6 +1,5 @@
-// app/notes/filter/[...slug]/Notes.client.tsx
 "use client";
-import css from "@/app/notes/filter/[...slug]/Notes.client.module.css";
+import css from "./Notes.client.module.css";
 import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import { useState, useEffect } from "react";
 import { useDebounce } from "use-debounce";
@@ -15,36 +14,29 @@ import Loader from "@/components/Loader/Loader";
 import ErrorMessage from "@/components/ErrorMessage/ErrorMessage";
 
 interface NotesClientProps {
-  initialData: FetchNotesResponse;
   selectedTag?: Tag | undefined;
 }
 
-export default function NotesClient({
-  initialData,
-  selectedTag,
-}: NotesClientProps) {
+export default function NotesClient({ selectedTag }: NotesClientProps) {
   const [currentPage, setCurrentPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearchQuery] = useDebounce(searchQuery, 800);
+
   useEffect(() => {
     setCurrentPage(1);
   }, [debouncedSearchQuery, selectedTag]);
+
   const { data, isLoading, isError, error } = useQuery<FetchNotesResponse>({
-    queryKey: ["notes", currentPage, debouncedSearchQuery, selectedTag],
+    queryKey: ["notes", { page: currentPage, q: debouncedSearchQuery, tag: selectedTag ?? null }],
     queryFn: () =>
       fetchNotes({
         page: currentPage,
         search: debouncedSearchQuery,
-        ...(selectedTag && selectedTag !== undefined
-          ? { tag: selectedTag }
-          : {}),
-        tag: selectedTag,
+        ...(selectedTag ? { tag: selectedTag } : {}),
       }),
-    refetchOnMount: false,
-    placeholderData:
-      currentPage === 1 && debouncedSearchQuery === "" && !selectedTag
-        ? initialData
-        : keepPreviousData,
+    
+    placeholderData: keepPreviousData,
+    staleTime: 30_000,
   });
 
   return (
@@ -68,6 +60,7 @@ export default function NotesClient({
           </Link>
         </div>
       </header>
+
       {isLoading ? (
         <Loader />
       ) : isError ? (
